@@ -229,4 +229,35 @@ public class PlaygroundTest {
         welcome.waitFor();
         assertEquals("Welcome, TestUser!", welcome.innerText());
     }
+
+    @Test
+    void mouseover() {
+        Page page = PlaywrightManager.getPage();
+        page.navigate("http://uitestingplayground.com/mouseover");
+
+        Locator firstLink = page.locator("//a[text()='Click me']");
+        Locator firstCounter = page.locator("//span[@id='clickCount']");
+        firstLink.click();
+        firstLink.click();
+        assertEquals("2", firstCounter.innerText());
+
+        Locator secondLink = page.locator("//a[text()='Link Button']");
+        Locator secondCounter = page.locator("//span[@id='clickButtonCount']");
+        secondLink.click();
+        secondLink.click();
+        assertEquals("2", secondCounter.innerText());
+
+    }
+
+
+    //ААААААА
+    @Test
+    void nbsp() {
+        Page page = PlaywrightManager.getPage();
+        page.navigate("http://uitestingplayground.com/nbsp");
+
+        Locator button1 = page.locator("//button[normalize-space(.)='My Button']");
+        button1.click();
+
+    }
 }
