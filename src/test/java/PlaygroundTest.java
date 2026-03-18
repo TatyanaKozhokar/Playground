@@ -3,8 +3,7 @@ import com.microsoft.playwright.Page;
 import org.example.utils.PlaywrightManager;
 import org.junit.jupiter.api.*;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class PlaygroundTest {
 
@@ -127,20 +126,38 @@ public class PlaygroundTest {
 
     }
 
-    //Не доделано
     @Test
     void dynamicTable() {
         Page page = PlaywrightManager.getPage();
         page.navigate("http://uitestingplayground.com/dynamictable");
-        String tableCpu = page.locator(
-                "//span[@role='cell' and contains(text(), 'Chrome')]/following-sibling::span[@role='cell'][1]"
-        ).textContent();
+        int cpuColumnIndex = -1;
+        Locator headers = page.locator("[role='columnheader']");
+        for (int i = 0; i < headers.count(); i++) {
+            if (headers.nth(i).textContent().equals("CPU")) {
+                cpuColumnIndex = i;
+                break;
+            }
+        }
 
-        String labelText = page.locator("//p[@class='bg-warning']").textContent();
-        String labelCpu = labelText.split(":")[1].trim();
+        String cpuValue = null;
+        Locator rows = page.locator("[role='row']");
 
-        assertEquals(labelCpu, tableCpu);
+        // Пропускаем первую строку (заголовки)
+        for (int i = 1; i < rows.count(); i++) {
+            Locator row = rows.nth(i);
+            Locator nameCell = row.locator("[role='cell']").first();
 
+            if (nameCell.textContent().equals("Chrome")) {
+                cpuValue = row.locator("[role='cell']").nth(cpuColumnIndex).textContent();
+                break;
+            }
+        }
+        assertNotNull(cpuValue, "CPU value for Chrome not found");
+        String yellowLabelValue = page.locator("//p[@class='bg-warning']").innerText().replaceAll("[^0-9.]", "");
+        assertEquals(
+                cpuValue.replace("%", "").trim(),
+                yellowLabelValue.replace("%", "").trim()
+        );
     }
 
     @Test
@@ -199,5 +216,17 @@ public class PlaygroundTest {
             page.locator(xpath).isVisible();
 
         }
+    }
+
+    @Test
+    void sampleApp() {
+        Page page = PlaywrightManager.getPage();
+        page.navigate("http://uitestingplayground.com/sampleapp");
+        page.locator("//input[@name='UserName']").fill("TestUser");
+        page.locator("//input[@name='Password']").fill("pwd");
+        page.locator("//button[@id='login']").click();
+        Locator welcome = page.locator("//label[@id='loginstatus']");
+        welcome.waitFor();
+        assertEquals("Welcome, TestUser!", welcome.innerText());
     }
 }
