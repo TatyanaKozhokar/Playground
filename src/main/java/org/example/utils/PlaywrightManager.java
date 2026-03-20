@@ -1,6 +1,7 @@
 package org.example.utils;
 
 import com.microsoft.playwright.*;
+import java.util.Arrays;
 
 public class PlaywrightManager {
 
@@ -8,36 +9,57 @@ public class PlaywrightManager {
     private static Browser browser;
     private static ThreadLocal<Page> page = new ThreadLocal<>();
 
-    // Инициализация браузера
     public static void initBrowser() {
         if (playwright == null) {
             playwright = Playwright.create();
-
             boolean headless = Boolean.parseBoolean(System.getProperty("headless", "false"));
-
-            BrowserType.LaunchOptions options = new BrowserType.LaunchOptions()
-                    .setHeadless(headless);
-
-            browser = playwright.chromium().launch(options);
+            browser = playwright.chromium().launch(new BrowserType.LaunchOptions().setHeadless(headless));
         }
     }
 
-    // Создание новой страницы для теста
     public static void createPage() {
-        closePage(); // Закрываем старую страницу если была
+        closePage();
 
-        BrowserContext context = browser.newContext(new Browser.NewContextOptions()
-                .setViewportSize(1920, 1080));
-        Page newPage = context.newPage();
-        page.set(newPage);
+        BrowserContext context = browser.newContext(
+                new Browser.NewContextOptions()
+                        .setViewportSize(1920, 1080)
+                        .setPermissions(Arrays.asList("clipboard-read", "clipboard-write"))
+        );
+
+        page.set(context.newPage());
     }
 
-    // Получение текущей страницы
+    // Метод для создания страницы с геолокацией
+    public static void createPageWithGeolocation(double latitude, double longitude) {
+        closePage();
+
+        BrowserContext context = browser.newContext(
+                new Browser.NewContextOptions()
+                        .setViewportSize(1920, 1080)
+                        .setPermissions(Arrays.asList("clipboard-read", "clipboard-write", "geolocation"))
+                        .setGeolocation(latitude, longitude)
+        );
+
+        page.set(context.newPage());
+    }
+
+    // Метод для создания страницы без геолокации (для теста с запретом)
+    public static void createPageWithoutGeolocation() {
+        closePage();
+
+        BrowserContext context = browser.newContext(
+                new Browser.NewContextOptions()
+                        .setViewportSize(1920, 1080)
+                        .setPermissions(Arrays.asList("clipboard-read", "clipboard-write"))
+        );
+
+        page.set(context.newPage());
+    }
+
     public static Page getPage() {
         return page.get();
     }
 
-    // Закрытие страницы и контекста
     public static void closePage() {
         if (page.get() != null) {
             page.get().context().close();
@@ -45,7 +67,6 @@ public class PlaywrightManager {
         }
     }
 
-    // Закрытие браузера
     public static void closeBrowser() {
         if (browser != null) {
             browser.close();

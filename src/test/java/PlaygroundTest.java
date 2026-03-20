@@ -1,11 +1,18 @@
-import com.microsoft.playwright.Locator;
-import com.microsoft.playwright.Page;
+import com.microsoft.playwright.*;
+
 import org.example.utils.PlaywrightManager;
 import org.junit.jupiter.api.*;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
 
 import static org.junit.jupiter.api.Assertions.*;
 
 public class PlaygroundTest {
+
+    private static final String TEST_PDF_PATH = "src/test/resources/test-file.pdf";
 
     @BeforeAll
     static void setUpClass() {
@@ -39,7 +46,8 @@ public class PlaygroundTest {
         Page page = PlaywrightManager.getPage();
         page.navigate("http://uitestingplayground.com/classattr");
         page.locator("//button[contains(concat(' ', normalize-space(@class), ' '), ' class3 ')]").click();
-        page.locator("//button[contains(text(), 'OK')]").click();
+        page.onceDialog(Dialog::accept);
+        page.locator("#alertButton").click();
     }
 
     @Test
@@ -50,15 +58,13 @@ public class PlaygroundTest {
         page.locator("//button[@id='greenButton']").click();
     }
 
-    //Тест не проходит - не видит синюю кнопку, хотя локатор верный
     @Test
     void loadDelays() {
         Page page = PlaywrightManager.getPage();
         page.navigate("http://uitestingplayground.com");
         page.locator("//a[text()='Load Delay']").click();
-        page.locator("//ya-tr-span[contains(@data-value, 'Button Appearing')]").waitFor(); //знаю что в Playwright ожидание прописано под капотом,
-        // но у меня не работало и я прописала на всякий случай (работать не стало)
-        page.locator("//ya-tr-span[contains(@data-value, 'Button Appearing')]").click();
+        page.locator("//html/body/section/div/button").waitFor();
+        page.locator("//html/body/section/div/button").click();
     }
 
     @Test
@@ -260,4 +266,183 @@ public class PlaygroundTest {
         button1.click();
 
     }
+
+    @Test
+    void overlapped() {
+        Page page = PlaywrightManager.getPage();
+        page.navigate("http://uitestingplayground.com/overlapped");
+
+        Locator name = page.locator("//input[@id='name']");
+        //name.scrollIntoViewIfNeeded(); - тест выполняется и без этого метода, т.к. Playwright, как правило,
+        // сам скроллит до элемента, но если что можно использовать его
+        name.fill("AAA");
+    }
+
+
+    //Замучила бедный дипсик, но так и не получилось до конца выполнить тест - clipboardText возвращает пустую строку, разберусь позже (надеюсь)
+    @Test
+    void shadowDom() {
+        Page page = PlaywrightManager.getPage();
+        page.navigate("http://uitestingplayground.com/shadowdom");
+
+        Locator shadowHost = page.locator("guid-generator");
+
+        // Кликаем Generate
+        shadowHost.locator("#buttonGenerate").click();
+        page.waitForTimeout(1000);
+
+        String generatedGuid = shadowHost.locator("#editField").getAttribute("value");
+
+        // Кликаем Copy
+        shadowHost.locator("#buttonCopy").click();
+        page.waitForTimeout(1000);
+
+        // Используем наш эмулированный clipboard
+        String clipboardText = page.evaluate("() => window.getClipboard()").toString();
+
+        assertEquals(generatedGuid, clipboardText);
+    }
+
+    @Test
+    void alerts() {
+        Page page = PlaywrightManager.getPage();
+        page.navigate("http://uitestingplayground.com/alerts");
+
+        page.onceDialog(Dialog::accept);
+        page.locator("#alertButton").click();
+
+        page.onceDialog(Dialog::accept);
+        page.locator("#confirmButton").click();
+
+        String customAnswer = "Hello";
+        page.onceDialog(dialog -> {
+            dialog.accept(customAnswer);
+        });
+        page.locator("#promptButton").click();
+    }
+
+    //Навайбкодила
+    @Test
+    void upload() throws IOException {
+        Page page = PlaywrightManager.getPage();
+        page.navigate("http://uitestingplayground.com/upload");
+
+        FrameLocator frame = page.frameLocator("iframe[src='/static/upload.html']");
+
+        Locator fileInput = frame.locator("#browse");
+
+        Path tempFile = Files.createTempFile("test-upload", ".txt");
+        Files.write(tempFile, "Test content for upload".getBytes());
+
+        try {
+            fileInput.setInputFiles(tempFile);
+
+            frame.locator("#browse").dispatchEvent("change");
+
+            page.waitForTimeout(500);
+
+            Locator uploadInfo = frame.locator(".upload-info");
+            assertTrue(uploadInfo.isVisible(), "Upload info should be visible");
+
+            Locator errorMessage = frame.locator(".error-message");
+            assertFalse(errorMessage.isVisible(), "Error message should not be visible");
+
+            Locator fileName = frame.locator(".file-name");
+            if (fileName.count() > 0) {
+                assertTrue(fileName.textContent().contains("test-upload"),
+                        "File name should be displayed");
+            }
+
+        } finally {
+            Files.deleteIfExists(tempFile);
+        }
+    }
+
+    @Test
+    void animation()  {
+        Page page = PlaywrightManager.getPage();
+        page.navigate("http://uitestingplayground.com/animation");
+        page.locator("#animationButton").click();
+        page.waitForFunction(
+                "document.querySelector('#movingTarget') && " +
+                        "!document.querySelector('#movingTarget').classList.contains('spin')",
+                null
+        );
+        page.locator("#movingTarget").click();
+        String buttonClass = page.locator("#movingTarget").getAttribute("class");
+
+        assertFalse(buttonClass.contains("spin"));
+    }
+
+    @Test
+    void disabledInput()  {
+        Page page = PlaywrightManager.getPage();
+        page.navigate("http://uitestingplayground.com/disabledinput");
+        page.click("#enableButton");
+        page.locator("#inputField:enabled").waitFor(new Locator.WaitForOptions()
+                .setTimeout(10000));
+        String text = "Test";
+        page.fill("#inputField", text);
+
+        assertEquals(text, page.inputValue("#inputField"));
+    }
+
+    @Test
+    void autoWait()  {
+        Page page = PlaywrightManager.getPage();
+        page.navigate("http://uitestingplayground.com/autowait");
+        page.selectOption("#element-type", "input");
+        page.uncheck("#visible");
+        page.click("#applyButton3");
+        Locator target = page.locator("#target");
+
+        assertTrue(target.isHidden(), "Element should be hidden after applying settings");
+
+        String testText = "Чикиряу";
+        target.fill(testText);
+
+        assertEquals(testText, target.inputValue());
+    }
+
+    @Test
+    @DisplayName("Тест: Frames")
+    void testFrames() {
+        Page page = PlaywrightManager.getPage();
+        page.navigate("http://uitestingplayground.com/frames");
+
+        FrameLocator outer = page.frameLocator("#frame-outer");
+
+        outer.locator("[data-action='edit']").click();
+        outer.locator("text=Submit").click();
+        outer.locator("[name='my-button']").click();
+        outer.locator("//button[@class='btn-class']").click();
+
+        FrameLocator inner = outer.frameLocator("#frame-inner");
+
+        inner.locator("[data-action='edit']").click();
+        inner.locator("text=Submit").click();
+        inner.locator("[name='my-button']").click();
+        inner.locator("//button[@class='btn-class']").click();
+
+        String result = inner.locator("#result").textContent();
+        assertTrue(result.contains("Primary"), "Last click should show Primary. Result: " + result);
+    }
+
+    //Вручную тест не проходит нигде
+    @Test
+    void testGeolocationAllow() {
+        PlaywrightManager.createPageWithGeolocation(55, 37.0060);
+        Page page = PlaywrightManager.getPage();
+
+        page.navigate("http://uitestingplayground.com/geolocation");
+        page.click("#requestLocation");
+        page.waitForTimeout(2000);
+
+        String location = page.locator("#location").textContent();
+
+        Assertions.assertFalse(location.contains("Not requested"),
+                "Location should be requested");
+        Assertions.assertTrue(location.matches(".*\\d+\\.\\d+.*"));
+    }
+
 }
