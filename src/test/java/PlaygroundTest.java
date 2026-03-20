@@ -12,7 +12,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class PlaygroundTest {
 
-    private static final String TEST_PDF_PATH = "src/test/resources/test-file.pdf";
+    //private static final String TEST_PDF_PATH = "src/test/resources/test-file.pdf";
 
     @BeforeAll
     static void setUpClass() {
