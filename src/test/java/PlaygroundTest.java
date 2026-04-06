@@ -1,5 +1,6 @@
 import com.microsoft.playwright.*;
 
+import com.microsoft.playwright.options.BoundingBox;
 import org.example.utils.PlaywrightManager;
 import org.junit.jupiter.api.*;
 
@@ -58,38 +59,48 @@ public class PlaygroundTest {
     @Test
     void hiddenLayers() {
         Page page = PlaywrightManager.getPage();
+        Locator greenButton = page.locator("#greenButton");
+        Locator blueButton = page.locator("#blueButton");
         page.navigate("http://uitestingplayground.com/hiddenlayers");
-        page.locator("//button[@id='greenButton']").click();
-        page.locator("//button[@id='greenButton']").click();
-    }
+        greenButton.click();
+        assertTrue(blueButton.isVisible());
+        assertThrows(PlaywrightException.class, () -> {
+            page.locator("#greenButton").click();
+        });   }
 
     @Test
     void loadDelays() {
         Page page = PlaywrightManager.getPage();
         page.navigate("http://uitestingplayground.com");
         page.locator("//a[text()='Load Delay']").click();
-        page.locator("//html/body/section/div/button").waitFor();
-        page.locator("//html/body/section/div/button").click();
+        page.locator(".btn-primary").waitFor();
+        page.locator(".btn-primary").click();
+        assertTrue(page.locator(".btn-primary").isEnabled());
     }
 
     @Test
     void ajax() {
         Page page = PlaywrightManager.getPage();
         page.navigate("http://uitestingplayground.com/ajax");
-        page.locator("//button[@id='ajaxButton']").click();
-        page.locator("//div[@id='content']/p[@class='bg-success']").waitFor(new Locator.WaitForOptions()
+        Locator ajaxButton = page.locator("//button[@id='ajaxButton']");
+        Locator success = page.locator(".bg-success");
+        ajaxButton.click();
+        success.waitFor(new Locator.WaitForOptions()
                 .setTimeout(20000)); //Playwright сам ждет 30000ms, поэтому доп ожидания прописывать
         // не нужно, но мы сделаем допущение
+        assertTrue(success.isVisible());
     }
 
     @Test
     void clientDelay() {
         Page page = PlaywrightManager.getPage();
         page.navigate("http://uitestingplayground.com/clientdelay");
-        page.locator("//button[@id='ajaxButton']").click();
-        page.locator("//p[@class='bg-success']").waitFor(new Locator.WaitForOptions()
+        Locator success = page.locator(".bg-success");
+        Locator button = page.locator("//button[@id='ajaxButton']");
+        button.click();
+        success.waitFor(new Locator.WaitForOptions()
                 .setTimeout(20000)); //То же самое
-        page.locator("//p[@class='bg-success']").click();
+        assertTrue(success.isVisible());
     }
 
     @Test
@@ -131,10 +142,9 @@ public class PlaygroundTest {
         Page page = PlaywrightManager.getPage();
         page.navigate("http://uitestingplayground.com/scrollbars");
         Locator button = page.locator("//button[@id='hidingButton']");
-
         button.scrollIntoViewIfNeeded();
         button.click();
-
+        assertTrue(button.isEnabled());
     }
 
     @Test
@@ -176,7 +186,7 @@ public class PlaygroundTest {
         Page page = PlaywrightManager.getPage();
         page.navigate("http://uitestingplayground.com/verifytext");
         Locator element = page.locator("//span[normalize-space()='Welcome UserName!']");
-        element.isVisible();
+        assertTrue(element.isVisible());
     }
 
     @Test
@@ -199,34 +209,27 @@ public class PlaygroundTest {
         page.locator("//button[@id='stopButton']").click();
 
         String finalProgress = progressBar.getAttribute("aria-valuenow");
-        System.out.println("Прогресс остановлен на " + finalProgress + "%");
+        int result = Integer.parseInt(finalProgress);
+        assertTrue(result>=75);
     }
 
     @Test
     void visibility() {
         Page page = PlaywrightManager.getPage();
         page.navigate("http://uitestingplayground.com/visibility");
-        String[][] buttons = {
-                {"hideButton"},
-                {"removedButton"},
-                {"zeroWidthButton"},
-                {"overlappedButton"},
-                {"transparentButton"},
-                {"invisibleButton"},
-                {"notdisplayedButton"},
-                {"offscreenButton"}
-        };
-
-        page.locator("//button[@id='hideButton']").click();
+        page.locator("#hideButton").click();
         page.waitForTimeout(1000);
 
-        for (String[] button : buttons) {
-            String id = button[0];
-            String xpath = "//button[@id='" + id + "']";
+        assertFalse(page.locator("#zeroWidthButton").isVisible());
+        assertFalse(page.locator("#notdisplayedButton").isVisible());
+        assertFalse(page.locator("#invisibleButton").isVisible());
 
-            page.locator(xpath).isVisible();
+        Locator transparent = page.locator("#transparentButton");
+        String opacity = transparent.evaluate("el => getComputedStyle(el).opacity").toString();
+        assertEquals("0", opacity);
 
-        }
+        assertTrue(page.locator("#removedButton").count() == 0);
+        assertTrue(page.locator("#hideButton").isVisible());
     }
 
     @Test
@@ -261,15 +264,14 @@ public class PlaygroundTest {
     }
 
 
-    //ААААААА
     @Test
     void nbsp() {
         Page page = PlaywrightManager.getPage();
         page.navigate("http://uitestingplayground.com/nbsp");
 
-        Locator button1 = page.locator("//button[normalize-space(.)='My Button']");
+        Locator button1 = page.locator("//button[text()='My\u00A0Button']");
+        assertTrue(button1.isVisible());
         button1.click();
-
     }
 
     @Test
@@ -277,37 +279,52 @@ public class PlaygroundTest {
         Page page = PlaywrightManager.getPage();
         page.navigate("http://uitestingplayground.com/overlapped");
 
-        Locator name = page.locator("//input[@id='name']");
-        //name.scrollIntoViewIfNeeded(); - тест выполняется и без этого метода, т.к. Playwright, как правило,
-        // сам скроллит до элемента, но если что можно использовать его
-        name.fill("AAA");
+        Locator scrollContainer = page.locator("#name").locator("..");
+        scrollContainer.evaluate("el => el.scrollTop = 50");
+        Locator nameField = page.locator("#name");
+        String expectedText = "Олег";
+        nameField.fill(expectedText);
+        String actualText = nameField.inputValue();
+
+        assertEquals(expectedText, actualText);
     }
 
 
-    //Замучила бедный дипсик, но так и не получилось до конца выполнить тест - clipboardText возвращает пустую строку, разберусь позже (надеюсь)
     @Test
     void shadowDom() {
         Page page = PlaywrightManager.getPage();
         page.navigate("http://uitestingplayground.com/shadowdom");
 
-        Locator shadowHost = page.locator("guid-generator");
+        //Жесть я чуть не померла пока искала это решение для буфера
+        page.evaluate("""
+        window._copiedText = null;
+        navigator.clipboard = {
+            writeText: (text) => {
+                window._copiedText = text;
+                return Promise.resolve();
+            },
+            readText: () => {
+                return Promise.resolve(window._copiedText);
+            }
+        };
+    """);
 
-        // Кликаем Generate
-        shadowHost.locator("#buttonGenerate").click();
+        page.locator("#buttonGenerate").click();
         page.waitForTimeout(1000);
 
-        String generatedGuid = shadowHost.locator("#editField").getAttribute("value");
+        Locator editField = page.locator("#editField");
+        String generatedCode = editField.inputValue();
+        assertNotNull(generatedCode);
 
-        // Кликаем Copy
-        shadowHost.locator("#buttonCopy").click();
-        page.waitForTimeout(1000);
+        page.click("#buttonCopy");
+        page.waitForTimeout(500);
 
-        // Используем наш эмулированный clipboard
-        String clipboardText = page.evaluate("() => window.getClipboard()").toString();
+        String copiedText = (String) page.evaluate("() => navigator.clipboard.readText()");
 
-        assertEquals(generatedGuid, clipboardText);
+        assertEquals(generatedCode, copiedText);
     }
 
+    //Я хз какой assert тут использовать
     @Test
     void alerts() {
         Page page = PlaywrightManager.getPage();
@@ -347,15 +364,14 @@ public class PlaygroundTest {
             page.waitForTimeout(500);
 
             Locator uploadInfo = frame.locator(".upload-info");
-            assertTrue(uploadInfo.isVisible(), "Upload info should be visible");
+            assertTrue(uploadInfo.isVisible());
 
             Locator errorMessage = frame.locator(".error-message");
-            assertFalse(errorMessage.isVisible(), "Error message should not be visible");
+            assertFalse(errorMessage.isVisible());
 
             Locator fileName = frame.locator(".file-name");
             if (fileName.count() > 0) {
-                assertTrue(fileName.textContent().contains("test-upload"),
-                        "File name should be displayed");
+                assertTrue(fileName.textContent().contains("test-upload"));
             }
 
         } finally {
