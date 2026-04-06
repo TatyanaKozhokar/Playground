@@ -8,6 +8,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 
+import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class PlaygroundTest {
@@ -38,16 +39,20 @@ public class PlaygroundTest {
     void dynamicID() {
         Page page = PlaywrightManager.getPage();
         page.navigate("http://uitestingplayground.com/dynamicid");
+        var dynamicLocatorID = page.locator("//button[@class='btn btn-primary' and @type='button']").getAttribute("id");
         page.locator("//button[@class='btn btn-primary' and @type='button']").click();
+        page.reload();
+        assertThat(page.locator("//button[@id='" + dynamicLocatorID + "']")).hasCount(0);
     }
 
     @Test
     void classAttribute() {
         Page page = PlaywrightManager.getPage();
         page.navigate("http://uitestingplayground.com/classattr");
-        page.locator("//button[contains(concat(' ', normalize-space(@class), ' '), ' class3 ')]").click();
-        page.onceDialog(Dialog::accept);
-        page.locator("#alertButton").click();
+        var button = page.locator(".btn-primary");
+        button.click();
+        page.onDialog(Dialog::accept);
+        assertTrue(button.isVisible());
     }
 
     @Test
