@@ -401,7 +401,6 @@ public class PlaygroundTest {
   }
 
   @Test
-  @DisplayName("Тест: Frames")
   void testFrames() {
     goTo("/frames");
 
