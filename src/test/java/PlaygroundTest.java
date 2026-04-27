@@ -24,7 +24,7 @@ public class PlaygroundTest {
   @BeforeEach
   void setUp() {
     PlaywrightManager.createPage();
-    Page page = PlaywrightManager.getPage();
+    page = PlaywrightManager.getPage();
     page.navigate(BASE_URL);
     page.context().clearCookies();
   }
@@ -74,7 +74,6 @@ public class PlaygroundTest {
 
   @Test
   void loadDelays() {
-    goTo("/loaddelays");
     page.locator("//a[text()='Load Delay']").click();
     page.locator(".btn-primary").waitFor();
     page.locator(".btn-primary").click();
@@ -112,7 +111,6 @@ public class PlaygroundTest {
     button.click(new Locator.ClickOptions()
         .setForce(true)
         .setPosition(5, 5));
-    page.waitForTimeout(1000);
     String newClass = button.getAttribute("class");
 
     assertNotEquals(beforeClass, newClass);
@@ -189,8 +187,8 @@ public class PlaygroundTest {
     goTo("/progressbar");
     page.locator("//button[@id='startButton']").click();
     Locator progressBar = page.locator("//div[@id='progressBar']");
-
-    while (true) {
+    int i = 0;
+    while (i < 75) {
       String progressValue = progressBar.getAttribute("aria-valuenow");
       int progress = Integer.parseInt(progressValue);
 
@@ -198,6 +196,7 @@ public class PlaygroundTest {
         break;
       }
       page.waitForTimeout(100);
+      i++;
     }
 
     page.locator("//button[@id='stopButton']").click();
@@ -211,7 +210,6 @@ public class PlaygroundTest {
   void visibility() {
     goTo("/visibility");
     page.locator("#hideButton").click();
-    page.waitForTimeout(1000);
 
     assertFalse(page.locator("#zeroWidthButton").isVisible());
     assertFalse(page.locator("#notdisplayedButton").isVisible());
@@ -298,14 +296,12 @@ public class PlaygroundTest {
         """);
 
     page.locator("#buttonGenerate").click();
-    page.waitForTimeout(1000);
 
     Locator editField = page.locator("#editField");
     String generatedCode = editField.inputValue();
     assertNotNull(generatedCode);
 
     page.click("#buttonCopy");
-    page.waitForTimeout(500);
 
     String copiedText = (String) page.evaluate("() => navigator.clipboard.readText()");
 
@@ -344,8 +340,6 @@ public class PlaygroundTest {
       fileInput.setInputFiles(tempFile);
 
       frame.locator("#browse").dispatchEvent("change");
-
-      page.waitForTimeout(500);
 
       Locator uploadInfo = frame.locator(".upload-info");
       assertTrue(uploadInfo.isVisible());
@@ -436,7 +430,6 @@ public class PlaygroundTest {
 
     goTo("/geolocation");
     page.click("#requestLocation");
-    page.waitForTimeout(2000);
 
     String location = page.locator("#location").textContent();
 
