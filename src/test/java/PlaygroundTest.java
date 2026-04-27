@@ -13,7 +13,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class PlaygroundTest {
 
-  //private static final String TEST_PDF_PATH = "src/test/resources/test-file.pdf";
+  private static final String BASE_URL = "http://uitestingplayground.com";
+  private Page page;
 
   @BeforeAll
   static void setUpClass() {
@@ -23,6 +24,9 @@ public class PlaygroundTest {
   @BeforeEach
   void setUp() {
     PlaywrightManager.createPage();
+    Page page = PlaywrightManager.getPage();
+    page.navigate(BASE_URL);
+    page.context().clearCookies();
   }
 
   @AfterEach
@@ -35,10 +39,14 @@ public class PlaygroundTest {
     PlaywrightManager.closeBrowser();
   }
 
+
+  private void goTo(String path) {
+    page.navigate(BASE_URL + path);
+  }
+
   @Test
   void dynamicID() {
-    Page page = PlaywrightManager.getPage();
-    page.navigate("http://uitestingplayground.com/dynamicid");
+    goTo("/dynamicid");
     var dynamicLocatorID = page.locator("//button[@class='btn btn-primary' and @type='button']").getAttribute("id");
     page.locator("//button[@class='btn btn-primary' and @type='button']").click();
     page.reload();
@@ -47,8 +55,7 @@ public class PlaygroundTest {
 
   @Test
   void classAttribute() {
-    Page page = PlaywrightManager.getPage();
-    page.navigate("http://uitestingplayground.com/classattr");
+    goTo("/classattr");
     var button = page.locator(".btn-primary");
     button.click();
     page.onDialog(Dialog::accept);
@@ -57,10 +64,9 @@ public class PlaygroundTest {
 
   @Test
   void hiddenLayers() {
-    Page page = PlaywrightManager.getPage();
     Locator greenButton = page.locator("#greenButton");
     Locator blueButton = page.locator("#blueButton");
-    page.navigate("http://uitestingplayground.com/hiddenlayers");
+    goTo("/hiddenlayers");
     greenButton.click();
     assertTrue(blueButton.isVisible());
     assertThrows(PlaywrightException.class, () -> page.locator("#greenButton").click());
@@ -68,8 +74,7 @@ public class PlaygroundTest {
 
   @Test
   void loadDelays() {
-    Page page = PlaywrightManager.getPage();
-    page.navigate("http://uitestingplayground.com");
+    goTo("/loaddelays");
     page.locator("//a[text()='Load Delay']").click();
     page.locator(".btn-primary").waitFor();
     page.locator(".btn-primary").click();
@@ -78,8 +83,7 @@ public class PlaygroundTest {
 
   @Test
   void ajax() {
-    Page page = PlaywrightManager.getPage();
-    page.navigate("http://uitestingplayground.com/ajax");
+    goTo("/ajax");
     Locator ajaxButton = page.locator("//button[@id='ajaxButton']");
     Locator success = page.locator(".bg-success");
     ajaxButton.click();
@@ -91,8 +95,7 @@ public class PlaygroundTest {
 
   @Test
   void clientDelay() {
-    Page page = PlaywrightManager.getPage();
-    page.navigate("http://uitestingplayground.com/clientdelay");
+    goTo("/clientdelay");
     Locator success = page.locator(".bg-success");
     Locator button = page.locator("//button[@id='ajaxButton']");
     button.click();
@@ -103,9 +106,7 @@ public class PlaygroundTest {
 
   @Test
   void click() {
-    Page page = PlaywrightManager.getPage();
-
-    page.navigate("http://uitestingplayground.com/click");
+    goTo("/click");
     Locator button = page.locator("//button[@id='badButton']");
     String beforeClass = button.getAttribute("class");
     button.click(new Locator.ClickOptions()
@@ -119,8 +120,7 @@ public class PlaygroundTest {
 
   @Test
   void textInput() {
-    Page page = PlaywrightManager.getPage();
-    page.navigate("http://uitestingplayground.com/textinput");
+    goTo("/textinput");
     String newName = "AAA";
     Locator input = page.locator("//input[@id='newButtonName']");
     input.click();
@@ -137,8 +137,7 @@ public class PlaygroundTest {
 
   @Test
   void scrollbars() {
-    Page page = PlaywrightManager.getPage();
-    page.navigate("http://uitestingplayground.com/scrollbars");
+    goTo("/scrollbars");
     Locator button = page.locator("//button[@id='hidingButton']");
     button.scrollIntoViewIfNeeded();
     button.click();
@@ -147,8 +146,7 @@ public class PlaygroundTest {
 
   @Test
   void dynamicTable() {
-    Page page = PlaywrightManager.getPage();
-    page.navigate("http://uitestingplayground.com/dynamictable");
+    goTo("/dynamictable");
     int cpuColumnIndex = -1;
     Locator headers = page.locator("[role='columnheader']");
     for (int i = 0; i < headers.count(); i++) {
@@ -181,16 +179,14 @@ public class PlaygroundTest {
 
   @Test
   void verifyText() {
-    Page page = PlaywrightManager.getPage();
-    page.navigate("http://uitestingplayground.com/verifytext");
+    goTo("/verifytext");
     Locator element = page.locator("//span[normalize-space()='Welcome UserName!']");
     assertTrue(element.isVisible());
   }
 
   @Test
   void progressbar() {
-    Page page = PlaywrightManager.getPage();
-    page.navigate("http://uitestingplayground.com/progressbar");
+    goTo("/progressbar");
     page.locator("//button[@id='startButton']").click();
     Locator progressBar = page.locator("//div[@id='progressBar']");
 
@@ -213,8 +209,7 @@ public class PlaygroundTest {
 
   @Test
   void visibility() {
-    Page page = PlaywrightManager.getPage();
-    page.navigate("http://uitestingplayground.com/visibility");
+    goTo("/visibility");
     page.locator("#hideButton").click();
     page.waitForTimeout(1000);
 
@@ -232,8 +227,7 @@ public class PlaygroundTest {
 
   @Test
   void sampleApp() {
-    Page page = PlaywrightManager.getPage();
-    page.navigate("http://uitestingplayground.com/sampleapp");
+    goTo("/sampleapp");
     page.locator("//input[@name='UserName']").fill("TestUser");
     page.locator("//input[@name='Password']").fill("pwd");
     page.locator("//button[@id='login']").click();
@@ -244,8 +238,7 @@ public class PlaygroundTest {
 
   @Test
   void mouseover() {
-    Page page = PlaywrightManager.getPage();
-    page.navigate("http://uitestingplayground.com/mouseover");
+    goTo("/mouseover");
 
     Locator firstLink = page.locator("//a[text()='Click me']");
     Locator firstCounter = page.locator("//span[@id='clickCount']");
@@ -264,8 +257,7 @@ public class PlaygroundTest {
 
   @Test
   void nbsp() {
-    Page page = PlaywrightManager.getPage();
-    page.navigate("http://uitestingplayground.com/nbsp");
+    goTo("/nbsp");
 
     Locator button1 = page.locator("//button[text()='My\u00A0Button']");
     assertTrue(button1.isVisible());
@@ -274,8 +266,7 @@ public class PlaygroundTest {
 
   @Test
   void overlapped() {
-    Page page = PlaywrightManager.getPage();
-    page.navigate("http://uitestingplayground.com/overlapped");
+    goTo("/overlapped");
 
     Locator scrollContainer = page.locator("#name").locator("..");
     scrollContainer.evaluate("el => el.scrollTop = 50");
@@ -290,8 +281,7 @@ public class PlaygroundTest {
 
   @Test
   void shadowDom() {
-    Page page = PlaywrightManager.getPage();
-    page.navigate("http://uitestingplayground.com/shadowdom");
+    goTo("/shadowdom");
 
     //Жесть я чуть не померла пока искала это решение для буфера
     page.evaluate("""
@@ -325,8 +315,7 @@ public class PlaygroundTest {
   //Я хз какой assert тут использовать
   @Test
   void alerts() {
-    Page page = PlaywrightManager.getPage();
-    page.navigate("http://uitestingplayground.com/alerts");
+    goTo("/alerts");
 
     page.onceDialog(Dialog::accept);
     page.locator("#alertButton").click();
@@ -342,8 +331,7 @@ public class PlaygroundTest {
   //Навайбкодила
   @Test
   void upload() throws IOException {
-    Page page = PlaywrightManager.getPage();
-    page.navigate("http://uitestingplayground.com/upload");
+    goTo("/upload");
 
     FrameLocator frame = page.frameLocator("iframe[src='/static/upload.html']");
 
@@ -377,8 +365,7 @@ public class PlaygroundTest {
 
   @Test
   void animation() {
-    Page page = PlaywrightManager.getPage();
-    page.navigate("http://uitestingplayground.com/animation");
+    goTo("/animation");
     page.locator("#animationButton").click();
     page.waitForFunction(
         "document.querySelector('#movingTarget') && " +
@@ -393,8 +380,7 @@ public class PlaygroundTest {
 
   @Test
   void disabledInput() {
-    Page page = PlaywrightManager.getPage();
-    page.navigate("http://uitestingplayground.com/disabledinput");
+    goTo("/disabledinput");
     page.click("#enableButton");
     page.locator("#inputField:enabled").waitFor(new Locator.WaitForOptions()
         .setTimeout(10000));
@@ -406,8 +392,7 @@ public class PlaygroundTest {
 
   @Test
   void autoWait() {
-    Page page = PlaywrightManager.getPage();
-    page.navigate("http://uitestingplayground.com/autowait");
+    goTo("/autowait");
     page.selectOption("#element-type", "input");
     page.uncheck("#visible");
     page.click("#applyButton3");
@@ -424,8 +409,7 @@ public class PlaygroundTest {
   @Test
   @DisplayName("Тест: Frames")
   void testFrames() {
-    Page page = PlaywrightManager.getPage();
-    page.navigate("http://uitestingplayground.com/frames");
+    goTo("/frames");
 
     FrameLocator outer = page.frameLocator("#frame-outer");
 
@@ -449,9 +433,8 @@ public class PlaygroundTest {
   @Test
   void testGeolocationAllow() {
     PlaywrightManager.createPageWithGeolocation(55, 37.0060);
-    Page page = PlaywrightManager.getPage();
 
-    page.navigate("http://uitestingplayground.com/geolocation");
+    goTo("/geolocation");
     page.click("#requestLocation");
     page.waitForTimeout(2000);
 
